@@ -1,6 +1,7 @@
 import os,sys,time
 import numpy as np
 import ROOT as rt
+from math import sqrt
 
 def read_flux( fluxfile, livetime_hours=5000.0, distance=29.0, normalize=False ):
     """
@@ -123,8 +124,8 @@ if __name__ == "__main__":
     #           "sin2_{me}":0.01,
     #          "dm2":7.0,
     #          "L_m":29.0 }
-    params = { "Ue4":0.1,
-               "Um4":0.1,
+    params = { "Ue4":sqrt(0.02),
+               "Um4":sqrt(0.02),
                "Ut4":0.1,
                "dm2":7.0,
                "L_m":29.0 }

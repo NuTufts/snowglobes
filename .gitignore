@@ -4,3 +4,5 @@ plots/*.root
 src/*o
 src/supernova
 supernova.glb
+*.pyc
+*~

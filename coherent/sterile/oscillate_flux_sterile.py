@@ -117,7 +117,7 @@ def make_flux_tgraph( flux ):
 
 if __name__ == "__main__":
 
-    flux = read_flux( "stpi.dat" )
+    flux = read_flux( "fluxes/stpi.dat" )
 
     #params = { "sin2_{ee}":0.01,
     #           "sin2_{mm}":0.01,

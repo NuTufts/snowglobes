@@ -57,7 +57,7 @@ def oscillate_flux_sterile( flux, params ):
         prob_mm = 1.0-s2mm*sin2dm
         prob_me = s2me*sin2dm
         prob_em = prob_me
-        
+        raise RuntimeError("sin2 par not supported right now")
 
     oscflux = np.zeros( flux.shape )
 
@@ -124,10 +124,10 @@ if __name__ == "__main__":
     #           "sin2_{me}":0.01,
     #          "dm2":7.0,
     #          "L_m":29.0 }
-    params = { "Ue4":sqrt(0.02),
-               "Um4":sqrt(0.02),
-               "Ut4":0.1,
-               "dm2":7.0,
+    params = { "Ue4":0.163,
+               "Um4":0.117,
+               "Ut4":0.2,
+               "dm2":1.25,
                "L_m":29.0 }
 
     print "given pars: sin2_{ee}: ",4.0*(1-params["Ue4"]*params["Ue4"])*params["Ue4"]*params["Ue4"]

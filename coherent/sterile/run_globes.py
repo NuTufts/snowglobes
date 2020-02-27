@@ -1,7 +1,7 @@
 import os,sys,json,array
 import numpy as np
 import ROOT as rt
-from math import sqrt
+from math import sqrt,log
 
 from oscillate_flux_sterile import read_flux, oscillate_flux_sterile
 
@@ -160,15 +160,16 @@ def read_output_data( fluxname, chanfile, exptconfig ):
 
 def ana_data( oscdata, nulldata ):
     """
-[ 6   nue_Ar40_marley1 ]  327.01578253498656
-[ 7   nuebar_Ar40 ]  0.0
-[ 8   nc_nue_Ar40 ]  26.45700936979586
-[ 9   nc_numu_Ar40 ]  10.90995486894403
-[ 10   nc_nutau_Ar40 ]  0.006368001369250145
-[ 11   nc_nuebar_Ar40 ]  0.009812826296037637
-[ 12   nc_numubar_Ar40 ]  44.057154025162575
-[ 13   nc_nutaubar_Ar40 ]  0.009812826296037637
+    [ 6   nue_Ar40_marley1 ]  327.01578253498656
+    [ 7   nuebar_Ar40 ]  0.0
+    [ 8   nc_nue_Ar40 ]  26.45700936979586
+    [ 9   nc_numu_Ar40 ]  10.90995486894403
+    [ 10   nc_nutau_Ar40 ]  0.006368001369250145
+    [ 11   nc_nuebar_Ar40 ]  0.009812826296037637
+    [ 12   nc_numubar_Ar40 ]  44.057154025162575
+    [ 13   nc_nutaubar_Ar40 ]  0.009812826296037637
     """
+    # single bin analysis
     totnc_null = 0.0
     totnc_osc  = 0.0
     for fid in xrange(8,14):
@@ -179,29 +180,74 @@ def ana_data( oscdata, nulldata ):
 
     cc_null = nulldata["events"][6,:] + nulldata["events"][7,:]
     cc_osc  = oscdata["events"][6,:]  + oscdata["events"][7,:]
-    diff    = cc_osc-cc_null
-    diff2   = np.power(diff,2)
-    chi2    = diff2[cc_null>0]/cc_null[cc_null>0]
-    ndf     = len(cc_null[cc_null>0])
+    diff_cc = cc_osc - cc_null
 
-    print "cc_osc: ",cc_osc[cc_null>0]
-    print "cc_null: ",cc_null[cc_null>0]
-    print "diff: ",diff[cc_null>0]
-    print "chi2: ",chi2,ndf
-    schi2 = (np.sum(chi2) + (totnc_osc-totnc_null)*(totnc_osc-totnc_null)/totnc_null)/float(ndf+1-1)
-    print "sum(diff): ",np.abs(diff[cc_null>0]).sum()
-    print "sum(diff2):",np.sum(diff2[cc_null>0])
-    print "sum(chi2):",np.sum(chi2)
-    print "chi2/ndf: ",schi2
+    nonzero = np.argwhere( cc_null>0 )
+    # rebin [5,55] MeV, in 10 bins
+    cc_null_rebin = np.zeros( (10) )
+    cc_osc_rebin  = np.zeros( (10) )    
+    for idx in nonzero:
+        en = nulldata["en"][idx[0]]
+        ebin = int(en)/5-1        
+        #print "diff[cc][",idx[0],", bin=",ebin,"]: ",nulldata["en"][idx[0]]," ",diff_cc[idx[0]]
+        cc_null_rebin[ebin] += cc_null[idx[0]]
+        cc_osc_rebin[ebin]  += cc_osc[idx[0]]        
 
-    tot_cc_osc = np.sum(cc_osc[cc_null>0])
-    tot_cc_nul = np.sum(cc_null[cc_null>0])
-    tot_cc_diff = tot_cc_osc-tot_cc_nul
-    print "tot_cc(null)=",tot_cc_nul
-    print "tot_cc(osc)=",tot_cc_osc
-    print "onebin_diff = ",tot_cc_diff
-    onebin_chi2 = tot_cc_diff*tot_cc_diff/tot_cc_nul
-    print "chi2(one-bin) = ",onebin_chi2," + ",onebin_nc_chi2
+    for ebin in xrange(len(cc_null_rebin)):
+        print "[ebin ",ebin," ",5+ebin*5," MeV ] null=",cc_null_rebin[ebin]," ",cc_osc_rebin[ebin]
+    
+    tot_cc_osc  = np.sum(cc_osc)
+    tot_cc_null = np.sum(cc_null)
+    tot_cc_diff = tot_cc_osc - tot_cc_null
+    tot_nc_diff = totnc_osc - totnc_null
+    onebin_cc_chi2 = tot_cc_diff*tot_cc_diff/tot_cc_null
+    onebin_nc_chi2 = tot_nc_diff*tot_nc_diff/totnc_null
+
+    R_null = tot_cc_null/totnc_null
+    R_osc  = tot_cc_osc/totnc_osc
+
+    R_null_sig = R_null*sqrt( 1.0/tot_cc_null + 1.0/totnc_null )
+    R_osc_sig  = R_osc*sqrt( 1.0/tot_cc_osc + 1.0/totnc_osc )
+    
+    R_chi2 = (R_null-R_osc)*(R_null-R_osc)/(R_null_sig*R_null_sig)
+
+    print "tot_cc(null)=",tot_cc_null
+    print "tot_cc(osc)=",tot_cc_osc," tot_cc_diff(osc-null)=",tot_cc_diff
+    print "tot_nc(null)=",totnc_null
+    print "tot_nc(osc)=",totnc_osc," tot_nc_diff(osc-null)=",tot_nc_diff
+    print "R(null)=",R_null," +/- ",R_null_sig
+    print "R(osc)=",R_osc," +/- ",R_osc_sig
+    print "chi2(one-bin) = ",onebin_cc_chi2," + ",onebin_nc_chi2
+    print "chi2(R) = ",R_chi2
+
+    # calculate the log-likelihood ratio
+    llr =  0.
+    for ebin in xrange(len(cc_null_rebin)):
+        e = cc_null_rebin[ebin]
+        o = cc_osc_rebin[ebin]
+        llr += 2.0*( e-o )
+        if o>0:
+            llr += 2.0*(log(o) - log(e))
+    print "-2llr: ",llr
+    print "nbins: ",len(cc_null_rebin)
+    print "-2llr/NDF: ",llr/float(len(cc_null_rebin))
+    
+    # Binned chi2
+    #diff    = cc_osc-cc_null
+    #diff2   = np.power(diff,2)
+    #chi2    = diff2[cc_null>0]/cc_null[cc_null>0]
+    #ndf     = len(cc_null[cc_null>0])
+
+    #print "cc_osc: ",cc_osc[cc_null>0]
+    #print "cc_null: ",cc_null[cc_null>0]
+    #print "diff: ",diff[cc_null>0]
+    #print "chi2: ",chi2,ndf
+    #schi2 = (np.sum(chi2) + (totnc_osc-totnc_null)*(totnc_osc-totnc_null)/totnc_null)/float(ndf+1-1)
+    #print "sum(diff): ",np.abs(diff[cc_null>0]).sum()
+    #print "sum(diff2):",np.sum(diff2[cc_null>0])
+    #print "sum(chi2):",np.sum(chi2)
+    #print "chi2/ndf: ",schi2
+
         
     return 0
     
@@ -210,18 +256,20 @@ if __name__ == "__main__":
     # we want to generate a sensitivity plot
     # it's a log-log plot, so we need to define the bins ourselves
 
-    (dm2_axis, ue4_axis, um4_axis, ut4_axis) = make_param_array( 10, 0.1, 1.0, 1, 7.0, 7.0 )
+    (dm2_axis, ue4_axis, um4_axis, ut4_axis) = make_param_array( 10, 0.01, 1.0, 1, 7.0, 7.0 )
     flux_unosc = read_flux( "fluxes/stpi.dat" )
 
     channame    = "argon_marley1"
     expt_config = "ar40kt"
+    L = 29.0
+    #L = 19.5    
 
     pnull = os.popen("./supernova.pl stpi %s %s 0"%(channame,expt_config))
     lines = pnull.readlines()
     nulldata = read_output_data("stpi","argon_marley1","ar40kt")
     print "[ NULL HYPO ]"
     for ic,chan in enumerate(nulldata["channeldata"]["channame"]):
-        nulldata["events"][ic,:] *= 3.0*3.14e7*0.000612/40.0*(20.0*20.0)/(29.0*29.0)*(5000.0/8766.0)
+        nulldata["events"][ic,:] *= 3.0*3.14e7*0.000612/40.0*(20.0*20.0)/(L*L)*(5000.0/8766.0)
         print "[",ic," ",chan,"] ",np.sum(nulldata["events"][ic,:])
 
     print "[Start osc calcs]"
@@ -229,13 +277,22 @@ if __name__ == "__main__":
         for ue4 in ue4_axis:
             for um4 in um4_axis:
                 for ut4 in ut4_axis:
+                    ue4 = 0.163*0.163
+                    um4 = 0.117*0.117
+                    ut4 = 0.2
+
+                    print "[ pars ] |Ue4|^2=",ue4," |Um4|^2=",um4," |Ut4|^2=",ut4," dm2=",dm2," eV^2"
                     oscpars = {"dm2":dm2,
                                "Ue4":sqrt(ue4),
                                "Um4":sqrt(um4),
                                "Ut4":sqrt(ut4),
                                "L_m":29.0}
                     sin2_mue = 4.0*ue4*um4
+                    sin2_ee  = 4.0*(1-ue4)*ue4
+                    sin2_mm  = 4.0*(1-um4)*um4
                     print "[run osc: sin2_{mue}]",sin2_mue
+                    print "[run osc: sin2_{ee}]",sin2_ee
+                    print "[run osc: sin2_{mm}]",sin2_mm
                     oscflux = oscillate_flux_sterile( flux_unosc, oscpars )
                     make_flux_file( "fluxes/osc_stpi.dat", oscflux )
                     #pline = os.popen("./supernova.pl osc_stpi %s %s 0"%(channame,expt_config))
@@ -245,7 +302,7 @@ if __name__ == "__main__":
                     #    print l.strip()
                     data = read_output_data("osc_stpi","argon_marley1","ar40kt")
                     for ic,chan in enumerate(data["channeldata"]["channame"]):
-                        data["events"][ic,:] *= 3.0*3.14e7*0.000612/40.0*(20.0*20.0)/(29.0*29.0)*(5000.0/8766.0)
+                        data["events"][ic,:] *= 3.0*3.14e7*0.000612/40.0*(20.0*20.0)/(L*L)*(5000.0/8766.0)
                         print "[",ic," ",chan,"] ",np.sum(data["events"][ic,:])
                     ana_data( data, nulldata )
                     break

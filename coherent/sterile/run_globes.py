@@ -3,7 +3,8 @@ import numpy as np
 import ROOT as rt
 from math import sqrt,log
 
-from oscillate_flux_sterile import read_flux, oscillate_flux_sterile
+from oscillate_flux_sterile import read_flux, oscillate_flux_sterile, make_flux_file
+from get_channel_data import get_channel_data
 
 def define_axes( nbinsx, xmin, xmax, nbinsy, ymin, ymax, nbinsz, zmin, zmax ):
     xbins = np.logspace(np.log10(xmin),np.log10(xmax), nbinsx)
@@ -34,41 +35,6 @@ def make_param_array( nbinsU, minU, maxU, nbinsdm2, mindm2, maxdm2 ):
     uaxis  = np.logspace(np.log10(minU),  np.log10(maxU),   nbinsU)
     dmaxis = np.logspace(np.log10(mindm2),np.log10(maxdm2), nbinsdm2)
     return (dmaxis,uaxis,uaxis,uaxis)
-
-def make_flux_file( filename, oscflux ):
-    fluxout = open(filename,'w')
-    for ibin in xrange(oscflux.shape[0]):
-        print>>fluxout,oscflux[ibin,0]," ",oscflux[ibin,1]," ",oscflux[ibin,2]," ",oscflux[ibin,3]," ",oscflux[ibin,4]," ",oscflux[ibin,5]," ",oscflux[ibin,6]
-    fluxout.close()
-
-def get_channel_data( chanfile ):
-    """ collect channel information from files channels folder """
-    
-    channeldata = { "channame":[],
-                    "channum":[],
-                    "cpstate":[],
-                    "flavor":[],
-                    "num_target_factor":[],
-                    "numchans":0}
-
-    chanfilename = "../../channels/channels_"+chanfile+".dat";
-    if not os.path.exists(chanfilename):
-        raise ValueError( "could not find channel file: ",chanfilename)
-    
-    chans = open(chanfilename,'r')
-    for l in chans.readlines():
-        l = l.strip()
-        info = l.split()
-        channeldata["channame"].append( info[0] )
-        channeldata["channum"].append( int(info[1]) )
-        channeldata["cpstate"].append( info[2] )
-        channeldata["flavor"].append(  info[3] )
-        channeldata["num_target_factor"].append( float(info[4]) )
-        channeldata["numchans"] += 1
-    chans.close();
-
-    print("Number of channels: ",channeldata["numchans"])
-    return channeldata
 
     
 def read_output_data( fluxname, chanfile, exptconfig ):

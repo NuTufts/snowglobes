@@ -113,7 +113,13 @@ def make_flux_tgraph( flux ):
         tots["nutaubar"] += flux[i,6]        
 
     return tgraph_v,tots
-        
+
+def make_flux_file( filename, oscflux ):
+    fluxout = open(filename,'w')
+    for ibin in xrange(oscflux.shape[0]):
+        print>>fluxout,oscflux[ibin,0]," ",oscflux[ibin,1]," ",oscflux[ibin,2]," ",oscflux[ibin,3]," ",oscflux[ibin,4]," ",oscflux[ibin,5]," ",oscflux[ibin,6]
+    fluxout.close()
+
 
 if __name__ == "__main__":
 

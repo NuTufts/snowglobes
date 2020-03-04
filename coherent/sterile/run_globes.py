@@ -220,17 +220,31 @@ def ana_data( oscdata, nulldata ):
     print "chi2(one-bin) = ",onebin_cc_chi2," + ",onebin_nc_chi2
     print "chi2(R) = ",R_chi2
 
+    # constrain uncertainty with NC
+    nc_sig = sqrt(totnc_osc)
+    ccnc_ratio_sig = 0.05 # percent uncertainty in ratio
+
     # calculate the log-likelihood ratio
     llr =  0.
+    chi2 = 0.0
+    chi2_nosys = 0.0
     for ebin in xrange(len(cc_null_rebin)):
+        # neg log-likelihood
         e = cc_null_rebin[ebin]
         o = cc_osc_rebin[ebin]
         llr += 2.0*( e-o )
         if o>0:
             llr += 2.0*(log(o) - log(e))
+        bin_sig = sqrt( e*(1.0+ccnc_ratio_sig) + totnc_osc )
+        # bin chi2
+        binchi2 = (e-o)*(e-0)/(bin_sig*bin_sig)
+        chi2 += binchi2
+        chi2_nosys += (e-o)*(e-0)/e
     print "-2llr: ",llr
     print "nbins: ",len(cc_null_rebin)
     print "-2llr/NDF: ",llr/float(len(cc_null_rebin))
+    print "chi2(stat): ",chi2_nosys," chi2/ndf=",chi2_nosys/float(len(cc_null_rebin))
+    print "chi2: ",chi2," chi2/NDF=",chi2/float(len(cc_null_rebin))
     
     # Binned chi2
     #diff    = cc_osc-cc_null
@@ -256,7 +270,7 @@ if __name__ == "__main__":
     # we want to generate a sensitivity plot
     # it's a log-log plot, so we need to define the bins ourselves
 
-    (dm2_axis, ue4_axis, um4_axis, ut4_axis) = make_param_array( 10, 0.01, 1.0, 1, 7.0, 7.0 )
+    (dm2_axis, ue4_axis, um4_axis, ut4_axis) = make_param_array( 10, 0.01, 1.0, 1, 1.0, 1.0 )
     flux_unosc = read_flux( "fluxes/stpi.dat" )
 
     channame    = "argon_marley1"

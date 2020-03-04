@@ -10,16 +10,15 @@ $fluxname = $ARGV[0];
 $channame = $ARGV[1];
 $expt_config = $ARGV[2];
 $noweight = $ARGV[3];
+$data_dir = $ARGV[4];
 
-
-$exename = "../../bin/./supernova";
+$exename = "$ENV{'SNOWGLOBES'}/bin/./supernova";
 unless (-f $exename)  {
     print $exename," executable not found.  Please compile and install, with SNOWGLOBES variable set.", "\n";
     exit;
 }
 
-
-$chanfilename = "../../channels/channels_".$channame.".dat";
+$chanfilename = $data_dir."/channels/channels_".$channame.".dat";
 
 # If we are using a non-standard binning, this binning must be defined at the top of
 # the channel file.  The format is:
@@ -64,7 +63,7 @@ open(GLOBESFILE,">$globesfilename");
 
 
 # Here we add the globes preamble, with any modifications needed for rebinning taken care of
-open(PREAMBLE,"../../glb/preamble.glb");
+open(PREAMBLE, $data_dir."/glb/preamble.glb");
 $ready_to_modify = 0;
 while(<PREAMBLE>) {
     if (index($_, "Energy window") != -1){$ready_to_modify = 1;}
@@ -85,14 +84,14 @@ close(PREAMBLE);
 
 # Put in the flux info
 
-$fluxfilename = "fluxes/".$fluxname.".dat";
+$fluxfilename = $data_dir."/fluxes/".$fluxname.".dat";
 unless(-f $fluxfilename) {
     print "Flux file name ",$fluxfilename," not found\n";
     exit;
 }
 
 
-open(FLUX,"../../glb/flux.glb");
+open(FLUX, $data_dir."/glb/flux.glb");
 
 while(<FLUX>) {
 # Replace the flux file name with the input argument
@@ -126,8 +125,7 @@ while(<CHANFILE>) {
 
     $chan_name = $stuff[0];
 
-    $output_line = "include \"../../smear/smear_".$chan_name."_".$expt_config.".dat\"\n";
-
+    $output_line = "include \"".$data_dir."/smear/smear_".$chan_name."_".$expt_config.".dat\"\n";
 
     print GLOBESFILE $output_line;
 }
@@ -185,7 +183,7 @@ print "Experiment config: ",$expt_config,"  Mass: ",$masses{$expt_config}," kton
 $do_bg = 0;
 $bg_chan_name = "bg_chan";
 
-$bg_filename = "../../backgrounds/".$bg_chan_name."_".$expt_config.".dat";
+$bg_filename = $data_dir."/backgrounds/".$bg_chan_name."_".$expt_config.".dat";
 if (-e $bg_filename) {
     $do_bg = 1;
     print "Using background file ",$bg_filename,"\n";
@@ -194,11 +192,11 @@ if (-e $bg_filename) {
 }
 
 if ($do_bg == 1) {
-    $output_line = "include \"../../smear/smear_".$bg_chan_name."_".$expt_config.".dat\"\n";
+    $output_line = "include \"".$data_dir."/smear/smear_".$bg_chan_name."_".$expt_config.".dat\"\n";
     print GLOBESFILE $output_line;
 }
 
-open(DETECTOR,"../../glb/detector.glb");
+open(DETECTOR, $data_dir."/glb/detector.glb");
 while(<DETECTOR>) {
 # Replace the flux file name with the input argument
     if (/mass/) {
@@ -235,7 +233,7 @@ while(<CHANFILE>) {
     $output_line = "cross(\#".$chan_name.")<\n";
     print GLOBESFILE $output_line;
 
-    $output_line = "      \@cross_file= \"../../xscns/xs_".$chan_name.".dat\"\n";
+    $output_line = "      \@cross_file= \"".$data_dir."/xscns/xs_".$chan_name.".dat\"\n";
 #    print $output_line;
     print GLOBESFILE $output_line;
 
@@ -253,7 +251,7 @@ if ($do_bg == 1) {
     $output_line = "cross(\#".$bg_chan_name.")<\n";
     print GLOBESFILE $output_line;
 
-    $output_line = "      \@cross_file= \"../../xscns/xs_zero.dat\"\n";
+    $output_line = "      \@cross_file= \"xscns/xs_zero.dat\"\n";
 #    print $output_line;
     print GLOBESFILE $output_line;
     
@@ -298,7 +296,7 @@ while(<CHANFILE>) {
 
 # Get the post-smearing efficiencies by channel
 
-    $eff_file = "../../effic/effic_".$chan_name."_".$expt_config.".dat";
+    $eff_file = $data_dir."/effic/effic_".$chan_name."_".$expt_config.".dat";
 #    print $eff_file,"\n";
     open(EFF_FILE,$eff_file);
     while(<EFF_FILE>) {
@@ -333,7 +331,7 @@ if ($do_bg == 1) {
 
 # Get the pre-smearing backgrounds by channel
 
-    $bg_file = "../../backgrounds/".$bg_chan_name."_".$expt_config.".dat";
+    $bg_file = $data_dir."/backgrounds/".$bg_chan_name."_".$expt_config.".dat";
     print $bg_file,"\n";
     open(BG_FILE,$bg_file);
     while(<BG_FILE>) {
@@ -352,10 +350,10 @@ print GLOBESFILE $output_line;
 
 # End-matter
 if ($energywindowset eq "standard"){
-    open(POSTAMBLE,"../../glb/postamble.glb");
+    open(POSTAMBLE,$data_dir."/glb/postamble.glb");
 }
 elsif ($energywindowset eq "_he"){
-    open(POSTAMBLE,"../../glb/postamble_he.glb");
+    open(POSTAMBLE, $data_dir."/glb/postamble_he.glb");
 }
 
 while(<POSTAMBLE>) {

@@ -42,6 +42,14 @@ if __name__ == "__main__":
     oscflux = oscillate_flux_sterile( flux_unosc, oscpars )
     make_flux_file( data_dir+"/fluxes/osc_stpi.dat", oscflux )
 
+    oscflux_noappear = oscillate_flux_sterile( flux_unosc, oscpars, no_appear=True )
+    make_flux_file( data_dir+"/fluxes/osc_stpi_noappear.dat", oscflux_noappear )
+
+    oscflux_nodisappear = oscillate_flux_sterile( flux_unosc, oscpars, no_disappear=True )
+    make_flux_file( data_dir+"/fluxes/osc_stpi_nodisappear.dat", oscflux_nodisappear )
+    
     os.system("./supernova.pl osc_stpi %s %s 0 %s"%(channame,expt_config,data_dir))
+    os.system("./supernova.pl osc_stpi_noappear %s %s 0 %s"%(channame,expt_config,data_dir))
+    os.system("./supernova.pl osc_stpi_nodisappear %s %s 0 %s"%(channame,expt_config,data_dir))
     
     

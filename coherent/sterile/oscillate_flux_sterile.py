@@ -22,7 +22,7 @@ def read_flux( fluxfile, livetime_hours=5000.0, distance=29.0, normalize=False )
     return flux
         
     
-def oscillate_flux_sterile( flux, params ):
+def oscillate_flux_sterile( flux, params, no_appear=False, no_disappear=False ):
     """
     flux[ energy, nue, numu, nutau, nuebar numubar, nutaubar ]
     """
@@ -67,19 +67,41 @@ def oscillate_flux_sterile( flux, params ):
 
     # copy energies
     oscflux[:,0] = flux[:,0]
-    
+    for i in xrange(1,7):
+        oscflux[:,i] = 0.0
+
+    # apply osc by providing appearance and disappearance contributions
+        
     # nue
-    oscflux[:,1] = flux[:,1]*prob_ee[:] + flux[:,2]*prob_me
+    if not no_disappear:
+        oscflux[:,1] += flux[:,1]*prob_ee[:]
+    if not no_appear:
+        oscflux[:,1] += flux[:,2]*prob_me[:]
     # numu
-    oscflux[:,2] = flux[:,2]*prob_mm[:] + flux[:,1]*prob_em
+    if not no_disappear:
+        oscflux[:,2] += flux[:,2]*prob_mm[:]
+    if not no_appear:
+        oscflux[:,2] += flux[:,1]*prob_em[:]
     # tau
-    oscflux[:,3] = flux[:,1]*prob_et + flux[:,2]*prob_mt
+    if not no_disappear:
+        oscflux[:,3] += flux[:,1]*prob_et[:]
+    if not no_disappear:
+        oscflux[:,3] += flux[:,2]*prob_mt[:]
     # nue-bar
-    oscflux[:,4] = flux[:,4]*prob_ee[:] + flux[:,5]*prob_me
+    if not no_disappear:
+        oscflux[:,4] += flux[:,4]*prob_ee[:]
+    if not no_appear:
+        oscflux[:,4] += flux[:,5]*prob_me[:]
     # numu-bar
-    oscflux[:,5] = flux[:,5]*prob_mm[:] + flux[:,4]*prob_em
+    if not no_disappear:
+        oscflux[:,5] += flux[:,5]*prob_mm[:]
+    if not no_appear:
+        oscflux[:,5] += flux[:,4]*prob_em[:]
     # nutar-bar
-    oscflux[:,6] = flux[:,4]*prob_et + flux[:,5]*prob_mt
+    if not no_disappear:
+        oscflux[:,6] += flux[:,4]*prob_et[:]
+    if not no_appear:
+        oscflux[:,6] += flux[:,5]*prob_mt[:]
 
     print "osc applied for {} in {} secs".format( params, time.time()-s )
         
